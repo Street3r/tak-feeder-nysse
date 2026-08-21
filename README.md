@@ -1,5 +1,11 @@
 # tak-feeder-nysse
 
+> [!WARNING]
+> **DEPRECATED** — This standalone feeder is no longer maintained.
+> Its functionality has been superseded by the TrakBridge plugin
+> [trakbridge-plugin-nysse](https://github.com/sgofferj/trakbridge-plugin-nysse)
+> ([latest release](https://github.com/sgofferj/trakbridge-plugin-nysse/releases/latest)).
+
 TAK Feeder for Nysse (Tampere public transport) bus data.
 (C) 2026 Stefan Gofferje
 
