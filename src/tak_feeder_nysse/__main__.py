@@ -1,73 +1,37 @@
-"""
-Main entry point for the Nysse TAK feeder.
-"""
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright Stefan Gofferje (tak-feeder-nysse)
+# Copyright (C) 2026 Street3r (changes, see README)
+"""Run the feeder: python -m tak_feeder_nysse"""
+
+from __future__ import annotations
 
 import asyncio
-import os
 import logging
-from configparser import ConfigParser
 
-import pytak
-from dotenv import load_dotenv
+from . import __version__
+from .common import Health, TakSettings, run_feeder, setup_logging
+from .feeder import NysseSource, Settings
 
-from .feeder import NysseWorker, NysseReceiver
+LOG = logging.getLogger("tak_feeder_nysse")
 
 
 async def main() -> None:
-    """
-    Main function to initialize and run the Nysse feeder.
-    """
-    load_dotenv()
+    """Read settings and run."""
+    tak = TakSettings.from_env()
+    setup_logging(tak.debug)
+    settings = Settings.from_env()
+    LOG.info("tak-feeder-nysse %s -> %s", __version__, tak.cot_url)
+    health = Health()
+    await run_feeder(tak, NysseSource(settings, health), settings.update_interval)
 
-    # Explicitly check for None and provide defaults
-    cot_url = os.getenv("COT_URL")
-    if not cot_url or cot_url.lower() == "none":
-        cot_url = "udp://239.2.3.1:6969"
 
-    cert = os.getenv("CLIENT_CERT")
-    if not cert or cert.lower() == "none":
-        cert = ""
-
-    key = os.getenv("CLIENT_KEY")
-    if not key or key.lower() == "none":
-        key = ""
-
-    # Configuration from environment variables
-    config_dict = {
-        "COT_URL": cot_url,
-        "PYTAK_TLS_CLIENT_CERT": cert,
-        "PYTAK_TLS_CLIENT_KEY": key,
-        "PYTAK_TLS_DONT_VERIFY": os.getenv("PYTAK_TLS_DONT_VERIFY", "0"),
-        "NYSSE_LINE_REF": os.getenv("NYSSE_LINE_FILTER", "60,60U,64,65,65A,66,67"),
-        "UPDATE_INTERVAL": os.getenv("UPDATE_INTERVAL", "3"),
-        "DEBUG": os.getenv("DEBUG", "0"),
-    }
-
-    config_parser = ConfigParser()
-    config_parser["mycottool"] = config_dict
-    config = config_parser["mycottool"]
-
-    # Setup logging level
-    if config.get("DEBUG") == "1":
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    # Setup CLI tool
-    clitool = pytak.CLITool(config)
-    await clitool.setup()
-
-    # Add Nysse workers
-    clitool.add_tasks(
-        set(
-            [
-                NysseWorker(clitool.tx_queue, config_dict),
-                NysseReceiver(clitool.rx_queue, config_dict),
-            ]
-        )
-    )
-
-    # Run the tool
-    await clitool.run()
+def run() -> None:
+    """Console script entry point."""
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    run()
