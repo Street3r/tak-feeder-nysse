@@ -95,6 +95,10 @@ Changes in this fork (Street3r):
   - Unmoved buses are re-sent every `REFRESH_INTERVAL` instead of every poll.
   - Standard variable names with the old ones as aliases; health check;
     unprivileged container; tests and CI.
+- 2026-10-15
+  - Every event of a send round reaches TAK. pytak's send queue holds 100
+    events and dropped the oldest when full, so rounds of more than 100
+    lost the rest.
 
 ## License
 
