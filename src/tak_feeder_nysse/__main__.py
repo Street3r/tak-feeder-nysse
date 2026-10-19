@@ -22,7 +22,7 @@ async def main() -> None:
     settings = Settings.from_env()
     LOG.info("tak-feeder-nysse %s -> %s", __version__, tak.cot_url)
     health = Health()
-    await run_feeder(tak, NysseSource(settings, health), settings.update_interval)
+    await run_feeder(tak, NysseSource(settings, health), min(settings.send.moving, settings.api_interval()))
 
 
 def run() -> None:

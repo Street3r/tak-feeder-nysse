@@ -31,8 +31,10 @@ Source: Journeys API (ITS Factory, City of Tampere), CC BY 4.0
 #NYSSE #bus
 ```
 
-Stop names are loaded in one request and refreshed daily. Buses that moved
-are sent every round, the others every `REFRESH_INTERVAL` seconds.
+Stop names are loaded in one request and refreshed daily. The API is read
+every `FETCH_INTERVAL` seconds, never faster than every 3 s (the API publishes
+no limit). A moving bus is sent every `SEND_MOVING_INTERVAL` seconds, a stopped
+one every `SEND_STATIONARY_INTERVAL` seconds.
 
 ## Configuration
 
@@ -42,9 +44,11 @@ are sent every round, the others every `REFRESH_INTERVAL` seconds.
 | `PYTAK_TLS_CLIENT_CERT` / `PYTAK_TLS_CLIENT_KEY` | | Client certificate and unencrypted key (PEM). Old names `CLIENT_CERT` / `CLIENT_KEY` still work |
 | `PYTAK_TLS_DONT_VERIFY` | `0` | `1` = do not verify the server certificate |
 | `NYSSE_LINE_FILTER` | (all lines) | Line numbers, wildcards allowed: `3,60,6*` |
-| `UPDATE_INTERVAL` | `3` | Poll interval (s) |
-| `REFRESH_INTERVAL` | `20` | Re-send unmoved buses this often |
-| `STALE_SECONDS` | `60` | Marker lifetime without new data |
+| `FETCH_INTERVAL` | (send interval) | Seconds between API reads, min 3 |
+| `SEND_MOVING_INTERVAL` | `5` | Seconds between sends of a moving bus, min 1 (old name `UPDATE_INTERVAL`) |
+| `SEND_STATIONARY_INTERVAL` | `60` | Seconds between sends of a stopped bus, min 30 (old name `REFRESH_INTERVAL`) |
+| `STATIONARY_SPEED` | `0.5` | Below this speed (m/s) a bus counts as stopped |
+| `STALE_SECONDS` | `180` | Marker lifetime; always at least 3 send intervals |
 | `TIMEZONE` | `Europe/Helsinki` | Time zone of the next stop time |
 | `SOURCE_LINE` | see above | Attribution line in the remarks |
 | `HEALTH_MAX_ERRORS` | `3` | Failed polls in a row before the container is unhealthy |
@@ -99,6 +103,14 @@ Changes in this fork (Street3r):
   - Every event of a send round reaches TAK. pytak's send queue holds 100
     events and dropped the oldest when full, so rounds of more than 100
     lost the rest.
+- 2026-10-19
+  - Send intervals shared by all feeders: a moving bus is sent every
+    `SEND_MOVING_INTERVAL` (5 s), a stopped one every
+    `SEND_STATIONARY_INTERVAL` (60 s) and at once when it stops. The
+    latest position is re-sent at that rate even when the source has
+    nothing new. The old variable names still work.
+  - The API is read every `FETCH_INTERVAL` (min 3 s); buses that leave the
+    API response are no longer sent.
 
 ## License
 

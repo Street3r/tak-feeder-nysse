@@ -65,10 +65,32 @@ class NysseTest(unittest.TestCase):
         self.assertIn("lineRef=3,60", urls[-1])
         self.assertEqual(len(events), 1)
 
-    def test_unmoved_not_resent_until_refresh(self) -> None:
+    def run_at(self, src, now):
+        with mock.patch.object(feeder, "fetch", mock.AsyncMock(side_effect=fake_fetch)) as m:
+            events = asyncio.run(src.events(now))
+        return len(events), sum(1 for c in m.call_args_list if "vehicle-activity" in c.args[0])
+
+    def test_send_and_fetch_rates(self) -> None:
+        src = feeder.NysseSource(feeder.Settings())  # moving every 5 s, fetch every 5 s
+        self.assertEqual(self.run_at(src, 0), (1, 1))
+        self.assertEqual(self.run_at(src, 2), (0, 0))
+        self.assertEqual(self.run_at(src, 5), (1, 1))  # same position re-sent
+
+    def test_fetch_never_faster_than_minimum(self) -> None:
+        settings = feeder.Settings(send=feeder.SendPolicy(moving=1))
+        self.assertEqual(settings.api_interval(), 3.0)
+        src = feeder.NysseSource(settings)
+        self.assertEqual(self.run_at(src, 0), (1, 1))
+        self.assertEqual(self.run_at(src, 1), (1, 0))  # sent from the cache
+        self.assertEqual(self.run_at(src, 3), (1, 1))
+
+    def test_vehicle_gone_from_api_is_dropped(self) -> None:
         src = feeder.NysseSource(feeder.Settings())
-        self.assertEqual(len(self.run_events(src)[0]), 1)
-        self.assertEqual(len(self.run_events(src)[0]), 0)
+        self.run_at(src, 0)
+        empty = json.dumps({"body": []}).encode()
+        with mock.patch.object(feeder, "fetch", mock.AsyncMock(return_value=empty)):
+            self.assertEqual(asyncio.run(src.events(10)), [])
+        self.assertEqual(src.vehicles, {})
 
     def test_duration(self) -> None:
         self.assertEqual(feeder.iso_duration_seconds("-P0Y0M0DT0H0M36.000S"), -36.0)
