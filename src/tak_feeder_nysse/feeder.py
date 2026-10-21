@@ -25,7 +25,7 @@ LOG = logging.getLogger("tak_feeder_nysse")
 API_URL = "https://data.itsfactory.fi/journeys/api/1"
 BUS_TYPE = "a-f-G-E-V-C-M-H"
 STOPS_INTERVAL = 24 * 3600
-MIN_FETCH_INTERVAL = 3.0  # the API has no documented limit; Eetu's choice 2026-10-18
+MIN_FETCH_INTERVAL = 3.0  # the API has no documented limit; chosen 2026-10-18
 MAX_AGE = 120.0  # vehicles missing from the API this long are dropped
 _DURATION = re.compile(
     r"^(-)?P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:([\d.]+)S)?)?$"
